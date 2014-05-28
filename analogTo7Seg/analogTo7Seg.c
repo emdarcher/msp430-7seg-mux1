@@ -17,11 +17,11 @@
 //prototypes
 void clear_display(void);
 void write_digit(unsigned char num, unsigned char dig);
-void write_number(unsigned char number);
+void write_number(unsigned int number);
 
 void bb_shift_out(unsigned char data);
 
-void flip_latch(void){};
+void flip_latch(void);
 
 void msg_error(void);
 
@@ -54,12 +54,17 @@ int main(void)
 	//initialize stuff
 	P1DIR |= ( MOSI | SCLK | SS );
 	P2DIR |= ( ALL_DIGS );
-	
+	P1OUT |= SS;
 	//infinite loop
+	//bb_shift_out(0xFF);
 	for(;;)
 	{
-		write_number(4398);
-		__delay_cycles(1000);
+		//msg_error();
+		write_number(2345);
+		//__delay_cycles(1000);
+		//P2OUT |= ALL_DIGS;
+		//bb_shift_out(0b01010101);
+		//flip_latch();
 	}
 	return 0; //should never reach this point
 }
@@ -73,15 +78,19 @@ void flip_latch(void){
 
 void bb_shift_out(unsigned char data){
 	unsigned char j;
-	for (j = 0; j < 8; j++){
-		if ( data & (1 << j)){
+	for (j = 0; j < 8 ; j++){
+		if ( !(data & (1 << (7-j)))){
 			P1OUT |= MOSI; //set MOSI high
 		} else {
 			P1OUT &= ~(MOSI);
 		}
 		//pulse the clock
 		P1OUT &= ~(SCLK); //LOW
+		//__delay_cycles(100);
 		P1OUT |= SCLK; //HIGH
+		//for(i = 0; i < 10; i++){
+		//__delay_cycles(100);
+		//}
 	}
 }
 
@@ -89,33 +98,40 @@ void bb_shift_out(unsigned char data){
 
 void write_digit(unsigned char num, unsigned char dig){
 	unsigned char k;
+	unsigned char p2stuff;
+	if(num < 10){
 	bb_shift_out(number_seg_bytes[num]);
+	} else {bb_shift_out(number_seg_bytes[10]);}
+	flip_latch();
 	for( k = 0; k < sizeof(digit_bits); k++){
 		if ( k == dig ){
-			P2OUT |= digit_bits[k];
+			p2stuff |= digit_bits[k];
 		} else {
-			P2OUT &= ~(digit_bits[k]);
+			p2stuff &= ~(digit_bits[k]);
 		}
 	}
-	flip_latch();
-	
+	P2OUT = p2stuff;
+	//flip_latch();
+	//__delay_cycles(5000);
 }
 
 void msg_error(void){
 	write_digit(10, 0);
 }
 
-void write_number(unsigned char number){
-		
+void write_number(unsigned int number){
+		unsigned char h;
+		unsigned int format_num = number;
 		//check if number is too big ot not
 		if (number < 10000){
 			//formats number based on digits to correct digits on display
-			write_digit((number/1000),3);
-			write_digit((number%1000)/100,2);
-			write_digit(((number%1000)%100)/10, 1 );
-			write_digit((((number%1000)%100)%10), 0);           
+			for(h=0;h<4;h++){
+				write_digit(format_num % 10, h);
+				format_num /= 10;
+			}         
 		} else {
 			msg_error();
 		}
+		//__delay_cylcles(1000);
 }
 

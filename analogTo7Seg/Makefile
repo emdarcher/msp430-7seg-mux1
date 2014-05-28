@@ -24,3 +24,6 @@ upload:
  
 size:
 	msp430-size main.elf
+
+tilib-upload:
+	mspdebug-new tilib "prog main.elf"
