@@ -23,6 +23,7 @@ void bb_shift_out(unsigned char data);
 
 void flip_latch(void){};
 
+void msg_error(void);
 
 //add any defined digits to this array
 unsigned char digit_bits[] = { DIG_0, DIG_1, DIG_2, DIG_3 };
@@ -43,7 +44,7 @@ unsigned char number_seg_bytes[] = {
 0b00011110,//7
 0b00000000,//8
 0b00011000,//9
-
+0b01100000, //'E' for error
 };
 
 int main(void)
@@ -57,8 +58,8 @@ int main(void)
 	//infinite loop
 	for(;;)
 	{
-		
-	
+		write_number(4398);
+		__delay_cycles(1000);
 	}
 	return 0; //should never reach this point
 }
@@ -84,6 +85,8 @@ void bb_shift_out(unsigned char data){
 	}
 }
 
+
+
 void write_digit(unsigned char num, unsigned char dig){
 	unsigned char k;
 	bb_shift_out(number_seg_bytes[num]);
@@ -98,11 +101,21 @@ void write_digit(unsigned char num, unsigned char dig){
 	
 }
 
+void msg_error(void){
+	write_digit(10, 0);
+}
+
 void write_number(unsigned char number){
-
-        //formats number based on digits to correct digits on display
-        write_digit((number%10), 0 );
-        write_digit((number/10), 1 );           
-
+		
+		//check if number is too big ot not
+		if (number < 10000){
+			//formats number based on digits to correct digits on display
+			write_digit((number/1000),3);
+			write_digit((number%1000)/100,2);
+			write_digit(((number%1000)%100)/10, 1 );
+			write_digit((((number%1000)%100)%10), 0);           
+		} else {
+			msg_error();
+		}
 }
 
