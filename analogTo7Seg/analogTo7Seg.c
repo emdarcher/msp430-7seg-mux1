@@ -21,6 +21,8 @@ void write_number(unsigned char number);
 
 void bb_shift_out(unsigned char data);
 
+void flip_latch(void){};
+
 
 //add any defined digits to this array
 unsigned char digit_bits[] = { DIG_0, DIG_1, DIG_2, DIG_3 };
@@ -48,11 +50,59 @@ int main(void)
 {
 	WDTCTL = WDTPW + WDTHOLD; //disable watchdog
 	
+	//initialize stuff
+	P1DIR |= ( MOSI | SCLK | SS );
+	P2DIR |= ( ALL_DIGS );
+	
 	//infinite loop
 	for(;;)
 	{
-	
+		
 	
 	}
 	return 0; //should never reach this point
 }
+
+void flip_latch(void){
+	//flip the latch which is SS
+	P1OUT &= ~(SS);
+	P1OUT |= SS;
+	
+}
+
+void bb_shift_out(unsigned char data){
+	unsigned char j;
+	for (j = 0; j < 8; j++){
+		if ( data & (1 << j)){
+			P1OUT |= MOSI; //set MOSI high
+		} else {
+			P1OUT &= ~(MOSI);
+		}
+		//pulse the clock
+		P1OUT &= ~(SCLK); //LOW
+		P1OUT |= SCLK; //HIGH
+	}
+}
+
+void write_digit(unsigned char num, unsigned char dig){
+	unsigned char k;
+	bb_shift_out(number_seg_bytes[num]);
+	for( k = 0; k < sizeof(digit_bits); k++){
+		if ( k == dig ){
+			P2OUT |= digit_bits[k];
+		} else {
+			P2OUT &= ~(digit_bits[k]);
+		}
+	}
+	flip_latch();
+	
+}
+
+void write_number(unsigned char number){
+
+        //formats number based on digits to correct digits on display
+        write_digit((number%10), 0 );
+        write_digit((number/10), 1 );           
+
+}
+
