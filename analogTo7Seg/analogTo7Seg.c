@@ -76,7 +76,7 @@ int main(void)
 			//	
 		//}   // wait for conversion to end
 		value = ADC_read_A1();
-		write_number(value);
+		write_number0(value);
 		//msg_error();
 		//write_number(2345);
 	}
