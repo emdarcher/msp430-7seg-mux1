@@ -26,6 +26,10 @@ void flip_latch(void);
 
 void msg_error(void);
 
+void ADC_init(void);
+
+unsigned int ADC_read_A1(void);
+
 //add any defined digits to this array
 unsigned char digit_bits[] = { DIG_0, DIG_1, DIG_2, DIG_3 };
 unsigned char num_digits = sizeof(digit_bits);
@@ -50,6 +54,8 @@ unsigned char number_seg_bytes[] = {
 0b01100000, //'E' for error
 };
 
+#define A1  BIT1
+
 int main(void)
 {
 	WDTCTL = WDTPW + WDTHOLD; //disable watchdog
@@ -60,10 +66,19 @@ int main(void)
 	P1OUT |= SS;
 	//infinite loop
 	//bb_shift_out(0xFF);
+	
+	ADC_init();
+	unsigned int value = 0;
 	for(;;)
 	{
+		
+		//while ((ADC10CTL1 & ADC10BUSY) == 0x01){
+			//	
+		//}   // wait for conversion to end
+		value = ADC_read_A1();
+		write_number(value);
 		//msg_error();
-		write_number(2345);
+		//write_number(2345);
 	}
 	return 0; //should never reach this point
 }
@@ -130,3 +145,23 @@ void write_number(unsigned int number){
 		}
 }
 
+//from mspsci.blogspot.com ADC10 tutorial
+void ADC_init(void) {
+            // Use Vcc/Vss for Up/Low Refs, 16 x ADC10CLKs, turn on ADC
+    ADC10CTL0 = SREF_0 + ADC10SHT_2 + ADC10ON;
+            // A1 input, use ADC10CLK div 1, single channel mode  
+    ADC10CTL1 =  INCH_1 + SHS_0 + ADC10SSEL_0 + ADC10DIV_0 + CONSEQ_0;
+    ADC10AE0 = A1;      // Enable ADC input on P1.1
+    
+    //ADC10CTL0 |= ENC+ ADC10SC;     // Enable conversions.
+} // ADC_init
+
+unsigned int ADC_read_A1(void){
+	unsigned int v;
+	ADC10CTL0 |= ENC+ ADC10SC;     // Enable conversions.
+	while ((ADC10CTL1 & ADC10BUSY) == 0x01){
+	}   // wait for conversion to end
+	v=ADC10MEM;
+	ADC10CTL0&=~ENC;                     //disable adc conv
+	return v;
+}
