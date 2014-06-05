@@ -5,6 +5,10 @@
 //next revision will attempt using SPI on the USI
 
 #include <msp430.h>
+
+//look in this header file "pinHeader.h" to see ascii visuals
+//of the 7 segment display pinouts and also see the pins 
+//used for the various controls on the msp430 mcu
 #include "pinHeader.h"
 
 //other defines
@@ -13,6 +17,8 @@
 #define SS BIT4 // RCK or Latch for shift register
 #define MOSI BIT6 // SER IN or Data on shift register
 #define SCLK BIT5 // SRCK or Clock on shift register
+
+#define A1  BIT1
 
 
 //prototypes
@@ -54,8 +60,6 @@ unsigned char number_seg_bytes[] = {
 0b01100000, //'E' for error
 };
 
-#define A1  BIT1
-
 int main(void)
 {
 	WDTCTL = WDTPW + WDTHOLD; //disable watchdog
@@ -64,21 +68,14 @@ int main(void)
 	P1DIR |= ( MOSI | SCLK | SS );
 	P2DIR |= ( ALL_DIGS );
 	P1OUT |= SS;
-	//infinite loop
-	//bb_shift_out(0xFF);
 	
 	ADC_init();
 	unsigned int value = 0;
+	//infinite loop
 	for(;;)
 	{
-		
-		//while ((ADC10CTL1 & ADC10BUSY) == 0x01){
-			//	
-		//}   // wait for conversion to end
 		value = ADC_read_A1();
 		write_number0(value);
-		//msg_error();
-		//write_number(2345);
 	}
 	return 0; //should never reach this point
 }
@@ -113,7 +110,7 @@ void write_digit(unsigned char num, unsigned char dig){
 	if(num < 10){
 	bb_shift_out(number_seg_bytes[num]);
 	} else {bb_shift_out(number_seg_bytes[10]);}
-	//flip_latch();
+	
 	for( k = 0; k < num_digits; k++){
 		if ( k == dig ){
 			p2stuff |= digit_bits[k];
@@ -123,7 +120,7 @@ void write_digit(unsigned char num, unsigned char dig){
 	}
 	P2OUT = p2stuff;
 	flip_latch();
-	//__delay_cycles(5000);
+	
 }
 
 void msg_error(void){
