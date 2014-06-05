@@ -9,6 +9,8 @@ code that takes an analog input and displays the 10-bit value on two multiplexed
 display multiplexing using a TPIC6B595 power shift register
 controlled by a TI msp430g2252 ic on a breadboard.
 
+
+####7-segment display pinouts
     segments
      ---A---
     |       |
