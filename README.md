@@ -1,8 +1,9 @@
  msp430 7-segment display multiplexing
 =================
 
-######analogTo7Seg
-	code that takes an analog input and displays the 10-bit value on two multiplexed 2-digit 7-segment displays.
+ analogTo7Seg
+-------------
+code that takes an analog input and displays the 10-bit value on two multiplexed 2-digit 7-segment displays.
 
 
 display multiplexing using a TPIC6B595 power shift register
