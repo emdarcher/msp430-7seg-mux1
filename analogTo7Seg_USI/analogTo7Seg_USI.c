@@ -68,8 +68,7 @@ unsigned char number_seg_bytes[] = {
 int main(void)
 {
 	//WDTCTL = WDTPW + WDTHOLD; //disable watchdog
-	
-    
+    WDT_init();
     
 	//initialize stuff
 	P1DIR |= ( MOSI | SCLK | SS );
@@ -79,13 +78,17 @@ int main(void)
     BCSCTL1 = CALBC1_1MHZ;          // Running at 1 MHz
     DCOCTL = CALDCO_1MHZ;
     
-	ADC_init();
+    USI_init();
+    
+    ADC_init();
+    
+    
 	unsigned int value = 0;
 	//infinite loop
 	for(;;)
 	{
 		value = ADC_read_A1();
-		write_number0(value);
+		write_number(value);
 	}
 	return 0; //should never reach this point
 }
@@ -154,14 +157,27 @@ void write_number(unsigned int number){
 
 void WDT_init(void){
     
-    
+    WDTCTL = ( WDTPW | WDTTMSEL | WDTCNTCL | WDTIS1 );
+    //initialize watchdog timer as an interval timer. WDTTMSEL
+    //clear it. WDTCNCTL
+    //set up with SMCLK/div 512, 1000000/512=1953.125Hz 0.512ms: WDTIS1
+    IE1 |= WDTIE; //enable interrupt
     
 }
 
 void USI_init(void){
     
+    //enable SDO, enable SCLK, master mode, output enabled, reset USI.
+    USICTL0 = ( USIPE6 | USIPE5 | USIMST | USIOE | USISWRST );
     
+    //CKPH = 1 , interrupt enable for USI counter,
+    USICTL1 = ( USICKPH | USIIE );
     
+    //div 111 so SMCLK / 8 = 125000Hz so 0.008ms for SCLK, select SMCLK
+    USICKCTL = (USIDIV_3 | USISSEL_2);
+    
+    USICTL0 &= ~USISWRST; // Release USI from reset
+    USICTL1 &= ~USIIFG; //avoid unwanted interrupt
 }
 
 //from mspsci.blogspot.com ADC10 tutorial
@@ -183,4 +199,13 @@ unsigned int ADC_read_A1(void){
 	v=ADC10MEM;
 	ADC10CTL0&=~ENC;                     //disable adc conv
 	return v;
+}
+
+//interrupts
+
+__attribute__((interrupt(WDT_VECTOR)))
+void WDT_ISR(void){
+    
+    
+    
 }
