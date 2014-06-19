@@ -1,10 +1,11 @@
 //program to display an analog value from A1 on
 //4 7-segment displays the are multiplexed.
 
-//this one will use bit banged SPI
-//next revision will attempt using SPI on the USI
+//this one will use the USI for SPI
+//
 
 #include <msp430.h>
+#include <stdint.h>
 
 //look in this header file "pinHeader.h" to see ascii visuals
 //of the 7 segment display pinouts and also see the pins 
@@ -34,6 +35,10 @@ void msg_error(void);
 
 void ADC_init(void);
 
+void USI_init(void);
+
+void WDT_init(void);
+
 unsigned int ADC_read_A1(void);
 
 //add any defined digits to this array
@@ -62,13 +67,18 @@ unsigned char number_seg_bytes[] = {
 
 int main(void)
 {
-	WDTCTL = WDTPW + WDTHOLD; //disable watchdog
+	//WDTCTL = WDTPW + WDTHOLD; //disable watchdog
 	
+    
+    
 	//initialize stuff
 	P1DIR |= ( MOSI | SCLK | SS );
 	P2DIR |= ( ALL_DIGS );
 	P1OUT |= SS;
 	
+    BCSCTL1 = CALBC1_1MHZ;          // Running at 1 MHz
+    DCOCTL = CALDCO_1MHZ;
+    
 	ADC_init();
 	unsigned int value = 0;
 	//infinite loop
@@ -140,6 +150,18 @@ void write_number(unsigned int number){
 		} else {
 			msg_error();
 		}
+}
+
+void WDT_init(void){
+    
+    
+    
+}
+
+void USI_init(void){
+    
+    
+    
 }
 
 //from mspsci.blogspot.com ADC10 tutorial
