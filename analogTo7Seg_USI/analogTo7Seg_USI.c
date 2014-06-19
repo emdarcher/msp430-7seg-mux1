@@ -39,7 +39,9 @@ void USI_init(void);
 
 void WDT_init(void);
 
-unsigned int ADC_read_A1(void);
+void ADC_read_A1(void);
+
+void USI_SPI_set(unsigned int bits);
 
 //add any defined digits to this array
 unsigned char digit_bits[] = { DIG_0, DIG_1, DIG_2, DIG_3 };
@@ -47,6 +49,13 @@ unsigned char num_digits = sizeof(digit_bits);
 
 //int i used for "for" loops
 int i;
+
+//area to store A1 input value
+unsigned int a1_val;
+//area to store bits to output over spi
+unsigned int SPI_out_bits;
+//area to store bytes for P2OUT to use after SPI output
+unsigned char p2stuff;
 
 //array to store bytes of port 1 values to make numbers
 unsigned char number_seg_bytes[] = {
@@ -81,14 +90,14 @@ int main(void)
     USI_init();
     
     ADC_init();
-    
-    
-	unsigned int value = 0;
+
+	//unsigned int value = 0;
 	//infinite loop
 	for(;;)
 	{
-		value = ADC_read_A1();
-		write_number(value);
+		ADC_read_A1();
+		write_number(a1_val);
+        _BIS_SR(LPM0_bits + GIE);   // Enter LPM0 and enable interrupts
 	}
 	return 0; //should never reach this point
 }
@@ -119,10 +128,14 @@ void bb_shift_out(unsigned char data){
 
 void write_digit(unsigned char num, unsigned char dig){
 	unsigned char k;
-	unsigned char p2stuff;
+	//unsigned char p2stuff;
 	if(num < 10){
-	bb_shift_out(number_seg_bytes[num]);
-	} else {bb_shift_out(number_seg_bytes[10]);}
+	//bb_shift_out(number_seg_bytes[num]);
+	SPI_out_bits = number_seg_bytes[num];
+    } else {
+    //bb_shift_out(number_seg_bytes[10]);
+    SPI_out_bits = number_seg_bytes[10];
+    }
 	
 	for( k = 0; k < num_digits; k++){
 		if ( k == dig ){
@@ -131,8 +144,8 @@ void write_digit(unsigned char num, unsigned char dig){
 			p2stuff &= ~(digit_bits[k]);
 		}
 	}
-	P2OUT = p2stuff;
-	flip_latch();
+	//P2OUT = p2stuff;
+	//flip_latch();
 	
 }
 
@@ -191,14 +204,14 @@ void ADC_init(void) {
     //ADC10CTL0 |= ENC+ ADC10SC;     // Enable conversions.
 } // ADC_init
 
-unsigned int ADC_read_A1(void){
-	unsigned int v;
+void ADC_read_A1(void){
+	//unsigned int v;
 	ADC10CTL0 |= ENC+ ADC10SC;     // Enable conversions.
 	while ((ADC10CTL1 & ADC10BUSY) == 0x01){
 	}   // wait for conversion to end
-	v=ADC10MEM;
+	a1_val=ADC10MEM;
 	ADC10CTL0&=~ENC;                     //disable adc conv
-	return v;
+	//return v;
 }
 
 //interrupts
@@ -206,6 +219,18 @@ unsigned int ADC_read_A1(void){
 __attribute__((interrupt(WDT_VECTOR)))
 void WDT_ISR(void){
     
+    P1OUT &= ~SS; //put SS low for data input to ext shift register
+    USISRL = SPI_out_bits; //loading USI shift register, USISRL for 8bit
+    USICNT = 8; //8 for 8 bits
+}
+
+__attribute__((interrupt(USI_VECTOR)))
+void USI_ISR(void){
     
+    P2OUT = p2stuff; //output p2stuff values for each digit Vcc
+    P1OUT |= SS; //activate SS to output values of ext shift register
+    USICTL1 &= ~USIIFG;     // Clear USI flag
+    _BIC_SR_IRQ(LPM0_bits); //following convention and clearing the LPM0_bits
+                            //to leave LPM0 and continue the loop
     
 }
