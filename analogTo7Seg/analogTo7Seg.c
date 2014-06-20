@@ -37,8 +37,8 @@ void ADC_init(void);
 unsigned int ADC_read_A1(void);
 
 //add any defined digits to this array
-unsigned char digit_bits[] = { DIG_0, DIG_1, DIG_2, DIG_3 };
-unsigned char num_digits = sizeof(digit_bits);
+const unsigned char digit_bits[] = { DIG_0, DIG_1, DIG_2, DIG_3 };
+const unsigned char num_digits = sizeof(digit_bits);
 
 //int i used for "for" loops
 int i;

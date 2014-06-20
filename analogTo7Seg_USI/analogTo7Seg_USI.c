@@ -44,8 +44,8 @@ void ADC_read_A1(void);
 void USI_SPI_set(unsigned int bits);
 
 //add any defined digits to this array
-unsigned char digit_bits[] = { DIG_0, DIG_1, DIG_2, DIG_3 };
-unsigned char num_digits = sizeof(digit_bits);
+const unsigned char digit_bits[] = { DIG_0, DIG_1, DIG_2, DIG_3 };
+const unsigned char num_digits = sizeof(digit_bits);
 
 //int i used for "for" loops
 int i;
@@ -58,7 +58,7 @@ unsigned int SPI_out_bits;
 unsigned char p2stuff;
 
 //array to store bytes of port 1 values to make numbers
-unsigned char number_seg_bytes[] = {
+const unsigned char number_seg_bytes[] = {
 //       unconfigured
 //ABCDEFG^
 0b00000010,//0
@@ -185,7 +185,7 @@ void USI_init(void){
     
     //CKPH = 1 , interrupt enable for USI counter,
     USICTL1 = ( USICKPH | USIIE );
-    
+    //USICTL1 = USIIE;
     //div 111 so SMCLK / 8 = 125000Hz so 0.008ms for SCLK, select SMCLK
     USICKCTL = (USIDIV_3 | USISSEL_2);
     
@@ -200,7 +200,7 @@ void ADC_init(void) {
             // A1 input, use ADC10CLK div 1, single channel mode  
     ADC10CTL1 =  INCH_1 + SHS_0 + ADC10SSEL_0 + ADC10DIV_0 + CONSEQ_0;
     ADC10AE0 = A1;      // Enable ADC input on P1.1
-    
+    //ADC10DTC1 = 0x01;
     //ADC10CTL0 |= ENC+ ADC10SC;     // Enable conversions.
 } // ADC_init
 
@@ -209,28 +209,50 @@ void ADC_read_A1(void){
 	ADC10CTL0 |= ENC+ ADC10SC;     // Enable conversions.
 	while ((ADC10CTL1 & ADC10BUSY) == 0x01){
 	}   // wait for conversion to end
-	a1_val=ADC10MEM;
+	//a1_val=ADC10MEM;
 	ADC10CTL0&=~ENC;                     //disable adc conv
-	//return v;
+	a1_val=ADC10MEM;
+    //return v;
+    
+    /*
+    ADC10CTL0&=~ENC;                     //disable adc conv
+    while (ADC10CTL1 & BUSY);           // Wait if ADC10 core is active
+    ADC10CTL0 |= ENC+ ADC10SC;     // Enable conversions
+    _BIS_SR(LPM0_bits + GIE);       // Enter LPM0 and enable interrupts
+                                    // the ADC10_ISR will exit this from LPM0.
+                                    
+    a1_val=ADC10MEM;*/
 }
 
 //interrupts
 
 __attribute__((interrupt(WDT_VECTOR)))
 void WDT_ISR(void){
-    
+    //write_number(a1_val);
+    //flip_latch();
     P1OUT &= ~SS; //put SS low for data input to ext shift register
-    USISRL = SPI_out_bits; //loading USI shift register, USISRL for 8bit
+    USISRL = ~SPI_out_bits;//loading USI shift register, USISRL for 8bit
     USICNT = 8; //8 for 8 bits
+    //_BIS_SR(LPM0_bits + GIE);   // Enter LPM0 and enable interrupts
 }
 
 __attribute__((interrupt(USI_VECTOR)))
 void USI_ISR(void){
     
     P2OUT = p2stuff; //output p2stuff values for each digit Vcc
+    //flip_latch();
     P1OUT |= SS; //activate SS to output values of ext shift register
     USICTL1 &= ~USIIFG;     // Clear USI flag
     _BIC_SR_IRQ(LPM0_bits); //following convention and clearing the LPM0_bits
                             //to leave LPM0 and continue the loop
     
 }
+/*__attribute__((interrupt(ADC10_VECTOR)))
+void ADC10_ISR(void){
+	//ADC10CTL0 &= ~ADC10IFG;
+	_BIC_SR_IRQ(LPM0_bits); //following convention and clearing the LPM0_bits
+                            //to leave LPM0 and continue ADC_read_vals()
+	
+	//simpler way:
+	//LPM0_EXIT;
+}*/
